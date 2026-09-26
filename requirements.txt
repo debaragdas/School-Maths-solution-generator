@@ -1,0 +1,31 @@
+pymupdf
+google-genai
+jinja2
+playwright
+requests
+gdown
+Pillow
+sympy
+
+# Used by the deterministic math_verifier.py answer re-verification
+# tier (arithmetic/linear-equation checks — see that file for scope).
+# Listed above as a required dependency, not optional: solver.py
+# imports it inside a try/except and degrades to "verification
+# skipped" if it's missing, but that silently loses real correctness
+# coverage, so it should be installed in every real deployment.
+
+pytest
+# Used to run this project's test_*.py files
+# (python3 -m pytest test_diagram_renderer.py -v, etc). Every test
+# file here is also plain-unittest-compatible (python3 -m unittest
+# test_diagram_renderer -v) if you'd rather not install pytest.
+
+# Optional: enables an independent, deterministic OCR cross-check of
+# every figure caption in book_diagram_extractor.py (see that file's
+# "STAGE 2 VALIDATION" comment). The pipeline works correctly without
+# it — a missing pytesseract just means that check degrades to
+# "inconclusive" and figure_ref matches proceed on their original
+# evidence alone. Also requires the `tesseract-ocr` system package
+# (and ideally its `asm`/`ben` traineddata) to be installed — pip
+# alone only installs the Python wrapper, not the OCR engine itself.
+pytesseract

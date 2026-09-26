@@ -1,0 +1,12 @@
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Downloaded books + per-run scratch (safe to delete; re-downloaded/re-built)
+temp/
+demo_after.pdf
+
+# Local virtualenvs, if any
+.venv/
+venv/
