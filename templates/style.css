@@ -1,0 +1,224 @@
+@font-face {
+  font-family: "Tiro Bangla";
+  src: @@TIRO_BANGLA_REGULAR_BASE64@@ format("truetype");
+  font-weight: 400;
+  font-style: normal;
+}
+
+:root {
+  --accent: #1a4d8f;
+  --accent-dark: #0f3766;
+  --accent-tint: #eaf1fa;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+
+body {
+  font-family: "Tiro Bangla", "Noto Sans Bengali", serif;
+  font-size: 17px;
+  line-height: 1.85;   /* extra breathing room for a serif academic face */
+  position: relative;
+  font-synthesis: none;
+  /* ROOT-CAUSE FIX (user-reported: broken/dotted Assamese conjuncts in
+     the generated PDF, e.g. "ব্যাসাৰ্ধ", "চূড়ান্ত উত্তৰ"): TiroBangla
+     only ships a Regular weight (see the @font-face comment above), so
+     every place this stylesheet asks for font-weight:700 (.label,
+     .final-answer, .solution-heading, headers, etc.) was being rendered
+     via Chromium's SYNTHESIZED ("faux") bold instead of a real bold
+     face. Faux bold works by algorithmically thickening/offsetting the
+     glyph outlines AFTER text shaping has already run — for a simple
+     Latin font that's a mostly-harmless cosmetic approximation, but for
+     a complex Brahmic script like Assamese, where multiple consonants
+     are joined via a virama (্) into a single shaped conjunct
+     ligature, post-shaping outline distortion breaks that ligature and
+     produces exactly the stray marks/dots visible in bold text in the
+     reported PDF. `font-synthesis: none` stops Chromium from faux-
+     bolding this font at all -- every font-weight:700 rule elsewhere in
+     this file still applies (nothing else needs to change), but it now
+     renders at TiroBangla's one correctly-shaped weight instead of a
+     corrupted synthetic one. This trades bold *emphasis* for text that
+     is actually readable, matching this project's own priority order
+     (Assamese text correctness ranks above typography). If a genuine
+     TiroBangla Bold .ttf ever becomes available, add a second
+     @font-face for it at font-weight:700 and this line becomes
+     unnecessary (real bold glyphs shape correctly on their own). */
+  color: #1a1a1a;
+}
+
+/* Logo watermark — tiled vertically at exactly one printed-page-height
+   interval (A4 297mm minus the top/bottom print margins set in
+   pdf_generator.py: 297 - 18 - 16 = 263mm) so ONE centered, faded copy
+   lands on every page rather than only once across the whole flowed
+   document.
+
+   The background image itself (@@WATERMARK_TILE_BASE64@@, built in
+   html_renderer.py's _build_watermark_tile) is a PRE-RENDERED,
+   already page-height-tall PNG with the logo drawn at its own,
+   undistorted aspect ratio and centered inside. background-size below
+   is set to that exact same pixel box the tile was built at
+   (@@WATERMARK_TILE_WIDTH_PX@@ x @@WATERMARK_TILE_HEIGHT_PX@@), so this
+   is a 1:1 non-stretching placement, not a resize — the logo's aspect
+   ratio is preserved regardless of what shape the source logo.png is. */
+.watermark-layer {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-image: url(data:image/png;base64,@@WATERMARK_TILE_BASE64@@);
+  background-repeat: repeat-y;
+  background-position: top center;
+  background-size: @@WATERMARK_TILE_WIDTH_PX@@px @@WATERMARK_TILE_HEIGHT_PX@@px;
+  opacity: 0.05;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.content { position: relative; z-index: 1; padding: 30px 40px; }
+
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 16px;
+}
+.top-bar-left, .top-bar-right {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--accent);
+}
+
+.chapter-title {
+  text-align: center;
+  font-size: 27px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 5px;
+}
+.exercise-title {
+  text-align: center;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 12px;
+}
+.brand-rule { border: none; border-top: 2px solid var(--accent); margin: 0 0 22px 0; }
+
+/* No page-break-inside/break-inside:avoid on .question-block — a long
+   proof needs to flow across page boundaries like a real printed book,
+   or it leaves a huge blank gap pushing the whole block to the next
+   page. Only the small proved-box is kept intact below.
+
+   .diagram-box / .diagram-box--large below ARE given break-inside:avoid
+   (Phase 6 — Layout Validation Engine): unlike a whole question block,
+   a single diagram is small and bounded (max 210px / 460px), so forcing
+   it to stay on one page costs at most a small amount of blank space
+   at the bottom of a page, in exchange for eliminating an entire class
+   of layout defect this project's architecture explicitly targets — a
+   figure sliced in half across a page break, with its top half on one
+   page and its bottom half (or its caption) on the next. This is the
+   deterministic, root-cause prevention half of layout validation;
+   layout_validation.py is the detection/audit half, catching whatever
+   this CSS rule cannot (e.g. a figure genuinely taller than one page). */
+.question-block {
+  margin-bottom: 22px;
+  padding: 4px 0 16px 16px;
+  border-left: 3px solid var(--accent);
+}
+
+.question-number { font-weight: 700; font-size: 17px; margin-bottom: 4px; color: var(--accent-dark); }
+.question-text { margin-bottom: 10px; }
+
+.question-body {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 20px;
+}
+.question-main { flex: 1 1 auto; min-width: 0; }
+
+.diagram-box { flex: 0 0 210px; width: 210px; text-align: center; break-inside: avoid; page-break-inside: avoid; }
+.diagram-box svg, .diagram-box img {
+  width: 100%;
+  height: auto;
+  max-height: 210px;
+  object-fit: contain;
+}
+.diagram-caption { font-size: 11px; color: #999; margin-top: 3px; }
+
+/* Large diagrams (statistics charts, coordinate planes — see
+   html_renderer.py's _LARGE_DIAGRAM_TYPES) stack below the solution
+   text instead of squeezing into the fixed 210px sidebar box, which
+   otherwise shrinks their axis/category labels proportionally into
+   illegibility. Centered with generous spacing on both sides so it
+   never collides with the surrounding text/formulas. */
+.question-body--stacked { flex-direction: column; }
+.question-body--stacked .question-main { flex: 1 1 auto; width: 100%; }
+.diagram-box--large {
+  flex: none;
+  width: 100%;
+  max-width: 460px;
+  margin: 14px auto 0;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+.diagram-box--large svg, .diagram-box--large img {
+  max-height: 360px;
+}
+
+/* Markdown-style pipe tables in question/solution text (see solver.py's
+   _convert_pipe_tables_to_html) — a proper bordered table instead of
+   raw "x | -2 | -1" text with a stray "--|----|----" delimiter line. */
+.data-table {
+  border-collapse: collapse;
+  margin: 8px 0;
+  font-size: 0.92em;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+.data-table th, .data-table td {
+  border: 1px solid var(--accent-tint);
+  padding: 4px 12px;
+  text-align: center;
+}
+.data-table th {
+  background: var(--accent-tint);
+  color: var(--accent-dark);
+  font-weight: 700;
+}
+
+.label-line { margin: 5px 0; }
+.label { font-weight: 700; color: var(--accent); }
+
+.instruments-box { margin: 5px 0 8px 0; }
+.instrument-chip {
+  display: inline-block;
+  background: var(--accent-tint);
+  color: var(--accent-dark);
+  border-radius: 12px;
+  padding: 2px 10px;
+  margin: 2px 4px 2px 0;
+  font-size: 0.85em;
+}
+
+.solution-heading { font-weight: 700; color: var(--accent); margin: 12px 0 5px 0; }
+
+.step { margin: 5px 0; padding-left: 18px; position: relative; }
+.step::before { content: "➢"; position: absolute; left: 0; color: var(--accent); font-size: 12px; }
+.step mjx-container { margin: 3px 0 !important; }
+
+.final-answer { margin-top: 10px; font-weight: 700; }
+
+.proved-box {
+  margin-top: 12px;
+  background: var(--accent-tint);
+  border-left: 4px solid var(--accent);
+  color: var(--accent-dark);
+  font-weight: 700;
+  padding: 7px 12px;
+  border-radius: 3px;
+  font-size: 15px;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+mjx-container[jax="SVG"] { display: inline-block; margin: 0 1px; }
+mjx-container[jax="SVG"][display="true"] { display: block; margin: 7px 0; text-align: left !important; }

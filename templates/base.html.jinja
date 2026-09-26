@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="as">
+<head>
+<meta charset="UTF-8">
+<style>{{ css }}</style>
+
+<!-- MathJax config MUST be defined before the bundle loads below.
+     SVG output = no external font/network dependency (unlike CHTML,
+     which by default wants to fetch web fonts from a CDN) — this keeps
+     PDF generation fully offline, matching the rest of the pipeline. -->
+<script>
+  window.__mathjaxReady__ = false;
+  window.MathJax = {
+    tex: {
+      inlineMath: [['\\(', '\\)']],   // \( ... \)  — NOT single $...$, to avoid
+      displayMath: [['$$', '$$']]     // colliding with currency figures in prose
+    },
+    svg: { fontCache: 'local' },
+    startup: {
+      ready: () => {
+        MathJax.startup.defaultReady();
+        MathJax.startup.promise.then(() => { window.__mathjaxReady__ = true; });
+      }
+    }
+  };
+</script>
+<script>{{ mathjax_js | safe }}</script>
+</head>
+<body>
+  <div class="watermark-layer"></div>
+
+  <div class="content">
+    <div class="top-bar">
+      <div class="top-bar-left">AssamStudy AI - Class {{ class_name }} Maths</div>
+      <div class="top-bar-right">Exercise {{ exercise_label }}</div>
+    </div>
+
+    <!-- chapter_name is pre-validated in Python (chapter_detector.py's
+         _looks_like_real_title) before it ever reaches this template —
+         a misread/garbage title (e.g. a stray "P") is filtered out
+         there, so this ": {{ chapter_name }}" suffix only ever appears
+         when there's a genuine title to show. -->
+    <div class="chapter-title">অধ্যায় {{ chapter_assamese }}{% if chapter_name %}: {{ chapter_name }}{% endif %}</div>
+    <div class="exercise-title">অনুশীলনী : {{ exercise_label }} | সম্পূৰ্ণ আৰু বিতং সমাধান</div>
+    <hr class="brand-rule">
+
+    {% for q in questions %}
+    <div class="question-block">
+      <div class="question-number">
+        প্ৰশ্ন {{ q.question_number }}{% if q.sub_part %}({{ q.sub_part }}){% endif %}:
+      </div>
+      <div class="question-text">{{ q.question_text | safe }}</div>
+
+      <div class="question-body {% if q.diagram_is_large %}question-body--stacked{% endif %}">
+        <div class="question-main">
+          {% if q.given %}
+          <div class="label-line"><span class="label">প্ৰদত্ত:</span> {{ q.given | safe }}</div>
+          {% endif %}
+          {% if q.required %}
+          <div class="label-line"><span class="label">প্ৰয়োজনীয়:</span> {{ q.required | safe }}</div>
+          {% endif %}
+
+          {% if q.construction_instruments %}
+          <div class="instruments-box">
+            <span class="label">প্ৰয়োজনীয় সঁজুলি:</span>
+            {% for tool in q.construction_instruments %}<span class="instrument-chip">{{ tool }}</span>{% endfor %}
+          </div>
+          {% endif %}
+
+          <div class="solution-heading">সমাধান</div>
+          {% for step in q.steps %}
+          <div class="step">{{ step | safe }}</div>
+          {% endfor %}
+
+          <div class="final-answer">
+            <span class="label">চূড়ান্ত উত্তৰ:</span> {{ q.final_answer | safe }}
+          </div>
+
+          {% if q.needs_review %}
+          <!-- Set by solver.py's coordinate self-verification tie-break
+               (see solver.py::_verify_coordinate_answers) when three
+               independent readings couldn't reach a majority — rather
+               than silently guessing, the original answer is kept
+               as-is and flagged here for a human to double check. -->
+          <div class="review-flag" style="margin-top:8px;padding:8px 10px;border:1px solid #d9822b;
+               background:#fff6e9;border-radius:4px;font-size:0.85em;color:#8a5a00;">
+            ⚠ Needs manual review — automatic coordinate verification could not confirm this answer.
+            {% if q.review_notes %}
+            <ul style="margin:4px 0 0 18px;padding:0;">
+              {% for note in q.review_notes %}<li>{{ note }}</li>{% endfor %}
+            </ul>
+            {% endif %}
+          </div>
+          {% endif %}
+        </div>
+
+        <!--
+          STRICT HIERARCHY RULE for diagrams — exactly one of these,
+          never both:
+            1. An original book-printed diagram image, if one was
+               extracted and matched to this question
+               (q.book_diagram_base64, set in solver.py via
+               book_diagram_extractor.py) — shown as-is.
+            2. Else, the AI-generated SVG (q.diagram_svg, computed from
+               q.diagram_spec by diagram_renderer.py) — shown instead.
+            3. Else, nothing — no empty diagram-box, no stray caption.
+
+          A "large" diagram (statistics chart / coordinate plane — see
+          html_renderer.py's _LARGE_DIAGRAM_TYPES — OR any diagram a
+          reviewer has manually marked "large" via the Human Review
+          UI's Diagram Position control, incl. a book-scanned figure
+          whose text is too small at sidebar size — see
+          html_renderer._resolve_diagram_is_large) uses the wider,
+          centered "diagram-box--large" layout instead of the fixed
+          210px sidebar box, via the "question-body--stacked" class
+          added above: a compact triangle/circle/angle stays beside
+          the text as before, but a chart with several category labels,
+          a full axes+grid plane, or a dense book figure gets the room
+          it needs instead of being shrunk into illegibility.
+        -->
+        {% if q.book_diagram_base64 %}
+        <div class="diagram-box {% if q.diagram_is_large %}diagram-box--large{% endif %}">
+          <img src="data:{{ q.book_diagram_mime }};base64,{{ q.book_diagram_base64 }}" alt="চিত্ৰ">
+          <div class="diagram-caption">{% if q.book_diagram_figure_ref %}চিত্ৰ {{ q.book_diagram_figure_ref }}{% else %}চিত্ৰ আৰ্হি{% endif %}</div>
+        </div>
+        {% elif q.diagram_svg %}
+        <div class="diagram-box {% if q.diagram_is_large %}diagram-box--large{% endif %}">
+          {{ q.diagram_svg | safe }}
+          <div class="diagram-caption">চিত্ৰ আৰ্হি</div>
+        </div>
+        {% endif %}
+      </div>
+
+      {% if q.answer_kind == 'proof' %}
+      <div class="proved-box">✔ প্ৰমাণিত হ'ল।</div>
+      {% else %}
+      <div class="proved-box">✔ সমাধান সম্পূৰ্ণ হ'ল।</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</body>
+</html>
